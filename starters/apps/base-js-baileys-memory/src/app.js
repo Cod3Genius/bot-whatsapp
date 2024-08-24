@@ -5,48 +5,53 @@ import { BaileysProvider as Provider } from '@builderbot/provider-baileys'
 
 const PORT = process.env.PORT ?? 3008
 
-const discordFlow = addKeyword('doc').addAnswer(
-    ['You can see the documentation here', '📄 https://builderbot.app/docs \n', 'Do you want to continue? *yes*'].join(
-        '\n'
-    ),
-    { capture: true },
-    async (ctx, { gotoFlow, flowDynamic }) => {
-        if (ctx.body.toLocaleLowerCase().includes('yes')) {
-            return gotoFlow(registerFlow)
-        }
-        await flowDynamic('Thanks!')
-        return
-    }
-)
-
-const welcomeFlow = addKeyword(['hi', 'hello', 'hola'])
-    .addAnswer(`🙌 Hello welcome to this *Chatbot*`)
+const menuFlow = addKeyword<Provider, Database>(['menu', 'opciones'])
     .addAnswer(
         [
-            'I share with you the following links of interest about the project',
-            '👉 *doc* to view the documentation',
+            '📋 MENU GENIUS 📋',
+            '1. Hablar con un representante',
+            '2. Consultar saldo de cuenta',
+            '3. Solicitar soporte técnico',
+            '4. Ver los últimos movimientos',
+            '0. Salir',
+            '',
+            'Por favor, responde con el número de la opción que deseas.',
         ].join('\n'),
         { delay: 800, capture: true },
-        async (ctx, { fallBack }) => {
-            if (!ctx.body.toLocaleLowerCase().includes('doc')) {
-                return fallBack('You should type *doc*')
+        async (ctx, { fallBack, flowDynamic }) => {
+            const userInput = ctx.body.trim();
+
+            switch (userInput) {
+                case '1':
+                    return flowDynamic('Conectando con un representante...');
+                case '2':
+                    return flowDynamic('Su saldo es de $500.');
+                case '3':
+                    return flowDynamic('Conectando con el departamento de soporte técnico...');
+                case '4':
+                    return flowDynamic([
+                        'Estos son tus últimos movimientos:',
+                        '1. Pago de $100',
+                        '2. Recarga de $50',
+                    ].join('\n'));
+                case '0':
+                    return flowDynamic('Gracias por contactar con nosotros.');
+                default:
+                    return fallBack('Opción no válida. Intente de nuevo.');
             }
-            return
-        },
-        [discordFlow]
-    )
+        }
+    );
 
-const registerFlow = addKeyword(utils.setEvent('REGISTER_FLOW'))
-    .addAnswer(`What is your name?`, { capture: true }, async (ctx, { state }) => {
-        await state.update({ name: ctx.body })
-    })
-    .addAnswer('What is your age?', { capture: true }, async (ctx, { state }) => {
-        await state.update({ age: ctx.body })
-    })
-    .addAction(async (_, { flowDynamic, state }) => {
-        await flowDynamic(`${state.get('name')}, thanks for your information!: Your age: ${state.get('age')}`)
-    })
-
+const welcomeFlow = addKeyword(['hi', 'hello', 'hola'])
+    .addAnswer(`✨Bienvenid@ a nuestro centro de atención ✨`)
+    .addAnswer(
+            '👏 En que te podemos ayudar el día de hoy 👏')
+    .addAnswer(
+        'Escribe *menu* para ver las opciones disponibles.',
+        { delay: 800 },
+        [menuFlow]
+    );
+    
 const fullSamplesFlow = addKeyword(['samples', utils.setEvent('SAMPLES')])
     .addAnswer(`💪 I'll send you a lot files...`)
     .addAnswer(`Send image from Local`, { media: join(process.cwd(), 'assets', 'sample.png') })
